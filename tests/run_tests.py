@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Test suite for the Azure BoQ Creator Agent scripts.
+Test suite for the Azure BoQ Creator Skill scripts.
 
     python tests/run_tests.py
 
@@ -33,7 +33,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-SCRIPTS = os.path.join(ROOT, "azure-boq-creator-agent", "scripts")
+SCRIPTS = os.path.join(ROOT, "azure-boq-creator-skill", "scripts")
 FIXTURES = os.path.join(HERE, "fixtures")
 
 PASS, FAIL = [], []
@@ -279,7 +279,7 @@ def test_summary_is_idempotent(tmp):
 # ------------------------------------------------------------------ harness
 def test_harness_syntax():
     print("\nharness.js")
-    path = os.path.join(ROOT, "azure-boq-creator-agent", "scripts", "harness.js")
+    path = os.path.join(ROOT, "azure-boq-creator-skill", "scripts", "harness.js")
     src = open(path, encoding="utf-8").read()
 
     node = shutil.which("node")
@@ -313,12 +313,12 @@ def test_harness_syntax():
 # --------------------------------------------------------------------- docs
 def test_docs():
     print("\ndocumentation")
-    base = os.path.join(ROOT, "azure-boq-creator-agent")
+    base = os.path.join(ROOT, "azure-boq-creator-skill")
     skill = open(os.path.join(base, "SKILL.md"), encoding="utf-8").read()
 
     check("SKILL.md has frontmatter", skill.startswith("---"))
     m = re.search(r"^name:\s*(\S+)", skill, re.M)
-    check("frontmatter declares the skill name", bool(m) and m.group(1) == "azure-boq-creator-agent")
+    check("frontmatter declares the skill name", bool(m) and m.group(1) == "azure-boq-creator-skill")
     d = re.search(r"^description:\s*(.+)$", skill, re.M)
     check("frontmatter has a description", bool(d) and len(d.group(1)) > 80)
 

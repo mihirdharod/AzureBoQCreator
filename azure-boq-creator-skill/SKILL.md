@@ -1,9 +1,9 @@
 ---
-name: azure-boq-creator-agent
+name: azure-boq-creator-skill
 description: Build a priced Azure Bill of Quantities for any Azure service - compute, storage, databases, AI and machine learning, analytics and data platform, containers, networking, security, IoT, integration and management - from an inventory (Excel, CSV) or a typed requirement. Recommends and right-sizes VM SKUs from source hardware or utilisation data, drives the Azure Pricing Calculator in a browser canvas, verifies every line item, and exports an Excel BoQ with per-application and per-service-category cost summaries. Use whenever someone asks to price Azure infrastructure or services, build a BoQ, cost estimate or quote, size or right-size VMs and disks, estimate a migration, landing-zone, data platform or AI workload cost, or convert an inventory or requirement into Azure pricing.
 ---
 
-# Azure BoQ Creator Agent
+# Azure BoQ Creator Skill
 
 Build a priced Azure Bill of Quantities. The flow is:
 

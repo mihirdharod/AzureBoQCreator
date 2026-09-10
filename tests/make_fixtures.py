@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Generate synthetic test fixtures for the Azure BoQ Creator Agent.
+Generate synthetic test fixtures for the Azure BoQ Creator Skill.
 
 Everything here is invented. No customer hostnames, subscription IDs, cost
 figures or inventories appear in this repository.

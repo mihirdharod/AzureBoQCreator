@@ -1,4 +1,4 @@
-# Azure BoQ Creator Agent
+# Azure BoQ Creator Skill
 
 [![tests](https://github.com/mihirdharod/AzureBoQCreator/actions/workflows/tests.yml/badge.svg)](https://github.com/mihirdharod/AzureBoQCreator/actions/workflows/tests.yml)
 
@@ -9,7 +9,10 @@ analytics, containers, networking and security on the Azure Pricing Calculator,
 verifies every line item, and exports a client-ready Excel BoQ with
 per-application and per-service-category cost summaries.
 
-A skill for the **GitHub Copilot app**.
+A **skill** for the GitHub Copilot app — a `SKILL.md` plus reference docs and
+scripts that the host Copilot session loads. It has no model, runtime or
+endpoint of its own; it extends Copilot rather than running as a standalone
+service.
 
 ---
 
@@ -73,13 +76,13 @@ Copy the folder into the Copilot app's skills directory:
 
 **Windows**
 ```powershell
-Copy-Item -Recurse .\azure-boq-creator-agent `
+Copy-Item -Recurse .\azure-boq-creator-skill `
   "$env:APPDATA\com.github.githubapp\app-skills\"
 ```
 
 **macOS / Linux**
 ```bash
-cp -r ./azure-boq-creator-agent \
+cp -r ./azure-boq-creator-skill \
   ~/Library/Application\ Support/com.github.githubapp/app-skills/
 ```
 
@@ -106,7 +109,7 @@ export the estimate.
 ## Layout
 
 ```
-azure-boq-creator-agent/
+azure-boq-creator-skill/
 ├── SKILL.md                     workflow the agent follows
 ├── reference/
 │   ├── calculator-dom.md        selectors, React quirks, 13 failure modes
