@@ -15,8 +15,10 @@ its DOM in a browser canvas. This skill contains the selectors, a tested harness
 and the failure modes.
 
 Read before writing any browser code:
-- `reference/calculator-dom.md` — selectors, React quirks, 11 failure modes
+- `reference/calculator-dom.md` — selectors, React quirks, 12 failure modes
 - `reference/products.md` — how to price non-VM services generically
+- `reference/service-catalogue.md` — verified product names for 90+ services
+  across all 13 categories, plus what is **not** priceable on the calculator
 
 ---
 
@@ -163,7 +165,11 @@ as you configure. **Always check its `missed` list** — missing fields usually 
 the region doesn't support the option you picked (failure mode 10), not a code bug.
 
 Use `runMixedPlan(plan)` for a plan combining VM and non-VM items.
-See `reference/products.md` for verified schemas.
+See `reference/products.md` for verified schemas, and
+`reference/service-catalogue.md` for the exact product name to pass to
+`__addProduct` — several services have been renamed (Azure AI Search is now
+`Foundry IQ`, Cognitive Services is now `Foundry Tools`) and searching the old
+name returns nothing.
 
 ---
 

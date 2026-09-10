@@ -57,9 +57,13 @@ window.__collapse = function (r) {
 };
 
 /* ---------- add any product by name -------------------------------------
- * The product search chokes on full names with parentheses
- * ("Azure Kubernetes Service (AKS)" returns nothing, "Kubernetes" works),
- * so fall back through progressively shorter queries. */
+ * Two quirks handled here:
+ *  - the search chokes on full names with parentheses ("Azure Kubernetes
+ *    Service (AKS)" returns nothing, "Kubernetes" works), so fall back
+ *    through progressively shorter queries;
+ *  - card titles are read from the SVG's <title>, which is the clean product
+ *    name. Reading innerText instead picks up tooltip cruft on some cards.
+ * See reference/service-catalogue.md for verified names. */
 window.__addProduct = async function (name) {
   const before = __rows().length;
   const s = document.querySelector('input.product-search');
@@ -68,6 +72,12 @@ window.__addProduct = async function (name) {
   const queries = [name, base, words.slice(-2).join(' '), words[words.length - 1], words[0]];
   const seen = new Set();
 
+  const title = b => {
+    const card = b.closest('div.service-info-picker-cta');
+    const t = card && card.querySelector('svg[data-slug-id] title');
+    return t ? t.textContent.trim() : '';
+  };
+
   for (const q of queries) {
     if (!q || seen.has(q.toLowerCase())) continue;
     seen.add(q.toLowerCase());
@@ -75,19 +85,38 @@ window.__addProduct = async function (name) {
 
     const btns = [...document.querySelectorAll('button')]
       .filter(b => /Add to estimate/i.test(b.innerText || '') && b.offsetParent !== null);
-    const title = b => { const c = b.closest('div'); return (c ? c.innerText : '').split('\n')[0].trim(); };
-    let t = btns.find(b => title(b).toLowerCase() === name.toLowerCase())
-         || btns.find(b => title(b).toLowerCase() === base.toLowerCase())
-         || btns.find(b => title(b).toLowerCase().startsWith(base.toLowerCase()));
+    const t = btns.find(b => title(b).toLowerCase() === name.toLowerCase())
+           || btns.find(b => title(b).toLowerCase() === base.toLowerCase())
+           || btns.find(b => title(b).toLowerCase().startsWith(base.toLowerCase()));
     if (t) {
+      const got = title(t);
       t.click();
       for (let i = 0; i < 40; i++) {
         await __sleep(250);
-        if (__rows().length > before) return { ok: true, via: q, title: title(t) };
+        if (__rows().length > before) return { ok: true, via: q, title: got };
       }
     }
   }
   return { ok: false, err: 'product not found: ' + name };
+};
+
+/* List every product the calculator currently offers for a search term.
+ * Use this when __addProduct fails — Microsoft renames services, so the
+ * product usually still exists under a different name. */
+window.__findProducts = async function (query) {
+  const s = document.querySelector('input.product-search');
+  if (s) { s.focus(); __setNative(s, ''); await __sleep(250); __setNative(s, query); await __sleep(1000); }
+  return [...new Set(
+    [...document.querySelectorAll('div.service-info-picker-cta.pickerItem')]
+      .filter(e => e.offsetParent !== null)
+      .map(el => {
+        const svg = el.querySelector('svg[data-slug-id]');
+        const t = svg && svg.querySelector('title');
+        return svg && t ? { slug: svg.getAttribute('data-slug-id'), name: t.textContent.trim() } : null;
+      })
+      .filter(Boolean)
+      .map(JSON.stringify)
+  )].map(JSON.parse);
 };
 
 /* Virtual Machines is the first card, so this stays valid. */

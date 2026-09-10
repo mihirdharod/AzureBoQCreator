@@ -114,6 +114,13 @@ Names with brackets fail on an exact search:
 | `Azure Files` | exact |
 | `Bandwidth` | exact |
 
+**For any other service, look the name up in `service-catalogue.md` first.**
+Several products have been renamed (Azure AI Search → `Foundry IQ`, Cognitive
+Services → `Foundry Tools`), and a handful are reachable only by typing their
+name because the category tabs don't render them — `Virtual Machine Scale Sets`,
+`Azure Dedicated Host`, `Azure Elastic SAN`, `Managed Disks`,
+`Azure Container Storage`.
+
 ## Scoping a full-stack BoQ
 
 A migration BoQ is rarely only VMs. Ask which of these are in scope, and say
