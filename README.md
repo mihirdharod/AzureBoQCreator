@@ -1,5 +1,7 @@
 # Azure BoQ Creator Agent
 
+[![tests](https://github.com/mihirdharod/AzureBoQCreator/actions/workflows/tests.yml/badge.svg)](https://github.com/mihirdharod/AzureBoQCreator/actions/workflows/tests.yml)
+
 Converts an inventory or a typed requirement into a priced Azure Bill of
 Quantities — across **any** Azure service, not just VMs. Right-sizes virtual
 machines from utilisation data, prices compute, storage, databases, AI,
@@ -116,6 +118,11 @@ azure-boq-creator-agent/
     ├── size_from_source.py      source hardware → SKU recommendations
     ├── harness.js               browser driver for the calculator
     └── build_summary.py         exported estimate → Excel summary sheet
+
+tests/
+├── run_tests.py                 123 assertions, no network or browser
+├── make_fixtures.py             regenerates the synthetic fixtures
+└── fixtures/                    synthetic workbooks, no customer data
 ```
 
 ## Sizing happens before pricing
@@ -178,7 +185,22 @@ difference. The skill surfaces that choice rather than picking one.
 
 ## Validation
 
-| Inventory | Result |
+```bash
+pip install openpyxl
+python tests/run_tests.py     # 123 assertions, no network, no browser
+```
+
+The suite covers the three Python scripts against synthetic fixtures, checks the
+harness exports its full API and still contains its documented guards, verifies
+the docs are internally consistent, and scans the repo for customer data. Several
+assertions are regression guards for specific bugs found while building real
+estimates, so a fix cannot silently be undone. See `tests/README.md` for what is
+deliberately **not** covered and why.
+
+Built and verified against real inventories (not included here — the fixtures are
+synthetic):
+
+| Input | Result |
 |---|---|
 | 9 sheets, 95 VMs across 9 applications | $113,921/mo · $1.37M/yr — built, verified, exported |
 | 3 sheets, 10 physical servers with utilisation data | Right-sized 608 → 536 vCPU, 2,038 → 1,456 GB RAM |
