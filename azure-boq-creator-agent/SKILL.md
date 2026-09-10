@@ -1,6 +1,6 @@
 ---
 name: azure-boq-creator-agent
-description: Build a priced Azure Bill of Quantities for any Azure service - VMs, storage, databases, containers, networking - from a server/resource inventory (Excel, CSV) or a typed requirement. Recommends VM SKUs from source hardware or utilisation data, drives the Azure Pricing Calculator in a browser canvas, and exports an Excel BoQ with a per-application cost summary. Use whenever someone asks to price Azure infrastructure, build a BoQ, cost estimate or quote, size or right-size VMs and disks, estimate a migration or landing-zone cost, or convert an inventory into Azure pricing.
+description: Build a priced Azure Bill of Quantities for any Azure service - compute, storage, databases, AI and machine learning, analytics and data platform, containers, networking, security, IoT, integration and management - from an inventory (Excel, CSV) or a typed requirement. Recommends and right-sizes VM SKUs from source hardware or utilisation data, drives the Azure Pricing Calculator in a browser canvas, verifies every line item, and exports an Excel BoQ with per-application and per-service-category cost summaries. Use whenever someone asks to price Azure infrastructure or services, build a BoQ, cost estimate or quote, size or right-size VMs and disks, estimate a migration, landing-zone, data platform or AI workload cost, or convert an inventory or requirement into Azure pricing.
 ---
 
 # Azure BoQ Creator Agent
@@ -9,10 +9,11 @@ Build a priced Azure Bill of Quantities. The flow is:
 
 **Scope → parse/size → confirm commercial assumptions → drive the calculator → verify → export → summarise.**
 
-Works for **any Azure service**, not just VMs. The Azure Pricing Calculator has
-**no import API**, so the only reliable way to build a large estimate is to drive
-its DOM in a browser canvas. This skill contains the selectors, a tested harness,
-and the failure modes.
+Works for **any of the calculator's ~220 products**, not just VMs — AI, analytics,
+databases, containers, security, IoT and integration all price through the same
+mechanism. The Azure Pricing Calculator has **no import API**, so the only
+reliable way to build a large estimate is to drive its DOM in a browser canvas.
+This skill contains the selectors, a tested harness, and the failure modes.
 
 Read before writing any browser code:
 - `reference/calculator-dom.md` — selectors, React quirks, 12 failure modes
@@ -24,17 +25,32 @@ Read before writing any browser code:
 
 ## 0. Scope the BoQ
 
-Ask what's in scope before pricing anything. A migration BoQ is rarely only VMs,
-and anything you leave out must be stated plainly in the final report.
+Ask what's in scope before pricing anything. A BoQ is rarely only VMs, and
+anything you leave out must be stated plainly in the final report.
 
-- **Compute** — Virtual Machines, AKS, App Service, Functions
-- **Storage** — managed disks (per VM), Storage Accounts, Azure Files, Backup
-- **Database** — SQL DB / Managed Instance, PostgreSQL, MySQL, Cosmos DB
-- **Network** — Bandwidth, Load Balancer, App Gateway, VPN/ExpressRoute, Firewall, Public IPs
-- **Platform** — Key Vault, Monitor / Log Analytics, Defender, Site Recovery
+| Category | Typical line items |
+|---|---|
+| **Compute** | Virtual Machines, VM Scale Sets, AKS, App Service, Functions, Container Apps, Batch, AVS, OpenShift, Virtual Desktop |
+| **Storage** | managed disks (per VM), Storage Accounts (blob/archive/queue/table/ADLS), Azure Files, NetApp Files, Elastic SAN, Backup |
+| **Databases** | SQL DB, SQL Managed Instance, Cosmos DB, PostgreSQL, MySQL, MariaDB, Cache for Redis, Cassandra |
+| **AI + machine learning** | Azure OpenAI, Foundry Tools, Foundry IQ, Azure Machine Learning, Document Intelligence, AI Bot Service |
+| **Analytics / data platform** | Microsoft Fabric, Synapse, Databricks, Data Factory, Stream Analytics, Data Explorer, HDInsight, Purview |
+| **Containers** | Container Instances, Container Registry, Container Storage, AKS, OpenShift |
+| **Networking** | Bandwidth (egress), VNet, Load Balancer, App Gateway, VPN/ExpressRoute, Front Door, CDN, Firewall, Bastion, DNS, IP Addresses, Private Link |
+| **Security** | Microsoft Sentinel, Key Vault, Defender for Cloud, DDoS Protection, Dedicated HSM |
+| **Management** | Azure Monitor / Log Analytics, Backup, Site Recovery, Automation, Policy, Advisor, Cost Management |
+| **IoT** | IoT Hub, IoT Central, Digital Twins, IoT Edge |
+| **Integration / web** | API Management, Service Bus, Event Grid, Event Hubs, Logic Apps, SignalR, Notification Hubs |
+| **Migration** | Azure Migrate, Database Migration Service, Data Box |
+| **Identity / hybrid** | Entra ID, Entra External ID, Azure Arc, Stack Edge |
 
 Cheap and almost always forgotten: **Bandwidth (egress), Public IPs, Backup,
-Log Analytics ingestion**.
+Log Analytics ingestion**. Egress in particular can be a large surprise.
+
+Data platform and AI BoQs have a different shape to a migration BoQ — cost is
+driven by **throughput, tokens, ingestion volume and capacity units** rather than
+server count. Ask for those volumes explicitly; there's no inventory to read them
+from.
 
 If the inventory is only servers, say so and offer to add the rest — don't
 silently produce a VM-only BoQ and call it a full estimate.
@@ -42,14 +58,19 @@ silently produce a VM-only BoQ and call it a full estimate.
 
 ---
 
-## 1. Parse the inventory
+## 1. Parse the input
 
-Inventories come in two shapes. Check which one you have **before** parsing:
+Inputs come in three shapes. Check which one you have **before** parsing:
 
-| Shape | Tell-tale | Script |
+| Shape | Tell-tale | How to handle |
 |---|---|---|
 | **Target list** — already has Azure SKUs | a column like `Azure VM SKU`, `VM Type at Target`, `SKU Recommendation` | `parse_inventory.py` |
 | **Source hardware** — current kit, no SKUs | `Total CPU`, `Total RAM GB`, `Physical or VM`, often `… Utilization` columns | `size_from_source.py` |
+| **Typed requirement** — no inventory at all | "price a Fabric F64 with 2 TB OneLake", "an OpenAI workload at 5M tokens/day" | go straight to §1c |
+
+Both scripts are for **server** inventories. AI, analytics, security and
+integration workloads usually have no server list — they are sized by capacity
+and throughput, so they follow §1c.
 
 `parse_inventory.py` exits with "No server rows found" when there's no SKU
 column — that's the signal to switch to `size_from_source.py`, not a bug.
@@ -82,6 +103,34 @@ alternative** column where one size down still clears peak with ≥20% headroom,
 and writes `plan.json` ready for the harness. Azure sizes double each step, so
 a +30% target frequently lands just over a boundary — show the user the table
 and the alternatives and let them decide.
+
+### 1c. Non-server workloads (AI, data, security, integration)
+
+There is nothing to parse — the cost drivers are volumes the user has to supply.
+Look the product up in `service-catalogue.md`, add it, then run `__describeRow`
+to see exactly which quantities it wants, and **ask for those specific numbers
+rather than guessing**. Typical drivers:
+
+| Workload | Ask for |
+|---|---|
+| Azure OpenAI | model, tokens/month in and out, PTU vs pay-as-you-go |
+| Foundry Tools / AI services | transactions or records per month, per feature |
+| Microsoft Fabric | capacity SKU (F2…F2048), OneLake storage GB |
+| Databricks / Synapse | DBU or vCore hours per month, tier |
+| Data Factory | pipeline activity runs, data movement hours |
+| Cosmos DB | RU/s (or serverless RU/month), stored GB, multi-region |
+| Event Hubs / Service Bus | throughput units, messages/month |
+| Microsoft Sentinel / Monitor | **GB ingested per day** and retention months |
+| Defender for Cloud | resource counts per plan (servers, SQL, storage) |
+| API Management | tier and units |
+| Container Registry | tier, storage GB |
+
+Two of these are routinely underestimated and worth flagging: **Sentinel/Log
+Analytics ingestion** (priced per GB/day, and it compounds with retention) and
+**Cosmos DB RU/s** provisioned versus actually used.
+
+Never invent these numbers. If the user doesn't have them, price a clearly
+labelled scenario ("assumes 50 GB/day ingestion") and say so in the report.
 
 Note it also warns when it picks F-series, which has **no Reserved Instance**.
 
