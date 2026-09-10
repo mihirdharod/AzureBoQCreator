@@ -16,10 +16,12 @@ reliable way to build a large estimate is to drive its DOM in a browser canvas.
 This skill contains the selectors, a tested harness, and the failure modes.
 
 Read before writing any browser code:
-- `reference/calculator-dom.md` — selectors, React quirks, 12 failure modes
+- `reference/calculator-dom.md` — selectors, React quirks, 13 failure modes
 - `reference/products.md` — how to price non-VM services generically
 - `reference/service-catalogue.md` — verified product names for 90+ services
   across all 13 categories, plus what is **not** priceable on the calculator
+- `reference/fabric-sizing.md` — Fabric is sized on a **separate** estimator
+  before it can be priced; read this before quoting any Fabric workload
 
 ---
 
@@ -115,7 +117,7 @@ rather than guessing**. Typical drivers:
 |---|---|
 | Azure OpenAI | model, tokens/month in and out, PTU vs pay-as-you-go |
 | Foundry Tools / AI services | transactions or records per month, per feature |
-| Microsoft Fabric | capacity SKU (F2…F2048), OneLake storage GB |
+| **Microsoft Fabric** | **size it on the Fabric SKU Estimator first — see `reference/fabric-sizing.md`** |
 | Databricks / Synapse | DBU or vCore hours per month, tier |
 | Data Factory | pipeline activity runs, data movement hours |
 | Cosmos DB | RU/s (or serverless RU/month), stored GB, multi-region |
@@ -128,6 +130,18 @@ rather than guessing**. Typical drivers:
 Two of these are routinely underestimated and worth flagging: **Sentinel/Log
 Analytics ingestion** (priced per GB/day, and it compounds with retention) and
 **Cosmos DB RU/s** provisioned versus actually used.
+
+### Services sized by a separate tool
+
+Some services cannot be sized from a requirement at all — you size them in a
+dedicated estimator, then price the answer on the calculator:
+
+| Service | Size it here | Then price |
+|---|---|---|
+| Microsoft Fabric | `https://estimator.fabric.microsoft.com/` | `Microsoft Fabric` product, `computeSku` |
+| Azure VMware Solution | Azure Migrate AVS assessment | `Azure VMware Solution` |
+| Cosmos DB | Cosmos capacity planner | `Azure Cosmos DB` |
+| VMs from an existing estate | Azure Migrate, or `size_from_source.py` | `Virtual Machines` |
 
 Never invent these numbers. If the user doesn't have them, price a clearly
 labelled scenario ("assumes 50 GB/day ingestion") and say so in the report.

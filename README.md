@@ -107,15 +107,36 @@ export the estimate.
 azure-boq-creator-agent/
 ├── SKILL.md                     workflow the agent follows
 ├── reference/
-│   ├── calculator-dom.md        selectors, React quirks, 12 failure modes
+│   ├── calculator-dom.md        selectors, React quirks, 13 failure modes
 │   ├── products.md              how to drive any non-VM product
-│   └── service-catalogue.md     verified names for 90+ services
+│   ├── service-catalogue.md     verified names for 90+ services
+│   └── fabric-sizing.md         Fabric: size on the estimator, then price
 └── scripts/
     ├── parse_inventory.py       target list  → normalised CSV
     ├── size_from_source.py      source hardware → SKU recommendations
     ├── harness.js               browser driver for the calculator
     └── build_summary.py         exported estimate → Excel summary sheet
 ```
+
+## Sizing happens before pricing
+
+Some services can't be sized from a requirement — you size them in a dedicated
+tool and price the answer on the calculator. **Microsoft Fabric** is the clearest
+case, and `reference/fabric-sizing.md` documents the full round trip:
+
+1. Drive the [Fabric SKU Estimator](https://estimator.fabric.microsoft.com/) with
+   compressed data size, daily batch cycles, table count and the workloads in use.
+2. It returns an **F SKU**, a **OneLake storage figure**, and a **Power BI licence
+   count** — three separate BoQ lines, only two of which the Azure calculator prices.
+3. Price the F SKU and OneLake GB on the `Microsoft Fabric` product.
+
+A verified run: 2 TB compressed, 4 daily cycles, 250 tables, Data Factory +
+Warehouse + Spark + Power BI → **F256**, OneLake 3,686 GB, 25 Power BI Pro
+licences → **$41,308/month** in Qatar Central.
+
+Worth noting from that run: Power BI drove **42%** of the capacity and another
+**42% was unused** — neither is predictable from data volume, which is exactly
+why the SKU shouldn't be guessed.
 
 ## Design notes
 
@@ -133,7 +154,7 @@ Host, Elastic SAN, Managed Disks, Container Storage — are reachable only by
 typing their name, because the category tabs never render them.
 
 **Verification is the point.** Automating the clicking is the easy half.
-`reference/calculator-dom.md` documents 12 failure modes found by building real
+`reference/calculator-dom.md` documents 13 failure modes found by building real
 estimates, including several that produce a wrong number rather than an error:
 
 - Changing region silently reverts a reservation to pay-as-you-go.
@@ -143,10 +164,13 @@ estimates, including several that produce a wrong number rather than an error:
   pricing fields instead of raising an error.
 - Quantities are entered in **GB**: "5 TB" means 5120. Defaults like Bandwidth's
   5 GB from us-west price at $0.00 because of the free tier.
+- `hoursFactor` **multiplies** the hours field. Factor "Month" with 730 hours
+  means 730 months — a verified Fabric row priced at **$30,013,020/month**
+  instead of $41,308.
 
-That last one was a real bug caught in testing — a Bandwidth row labelled "5 TB"
-was contributing **$0/month** to an estimate where it should have been $602, or
-24% of the total. `__auditCosts()` now catches that class of error.
+The Bandwidth one was a real bug caught in testing — a row labelled "5 TB" was
+contributing **$0/month** to an estimate where it should have been $602, or 24%
+of the total. `__auditCosts()` now catches that class of error.
 
 **Ask, don't assume.** Lift-and-shift versus right-sizing changed one pair of
 servers from `M128s v2` (128 vCPU / 2 TB RAM) to `E32s v5` — roughly a 4x cost
@@ -159,6 +183,7 @@ difference. The skill surfaces that choice rather than picking one.
 | 9 sheets, 95 VMs across 9 applications | $113,921/mo · $1.37M/yr — built, verified, exported |
 | 3 sheets, 10 physical servers with utilisation data | Right-sized 608 → 536 vCPU, 2,038 → 1,456 GB RAM |
 | Mixed VM + Storage + Files + SQL + Bandwidth | All 5 services priced and summarised |
+| Fabric workload, no inventory | Estimator → F256 → $41,308/mo priced on the calculator |
 
 ## Notes
 

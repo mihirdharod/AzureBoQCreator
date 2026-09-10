@@ -205,6 +205,29 @@ Two rules:
 Run `__auditCosts(targetRegion)` before quoting any total — it flags
 `ZERO_COST`, `LABEL_QTY_NOT_IN_ROW` and `REGION_MISMATCH`.
 
+### 13. `hoursFactor` MULTIPLIES the hours field
+Several products pair a quantity with a unit multiplier — `computeHoursFactor`
+on Fabric, `hoursFactor` on Virtual Machines and App Service, and the various
+`*Factor` selects on Azure Files and SQL Database. The total is
+**quantity × factor**, not quantity expressed in that unit.
+
+Setting factor = `730` (Month) **and** hours = `730` means 730 months. Verified
+on a Fabric F256 row:
+
+| computeHoursFactor | computeHours | Monthly |
+|---|---|---|
+| `730` (Month) | `730` | **$30,013,020** ← 730x too high |
+| `1` (Hours) | `730` | **$41,308** ← correct |
+
+For one month of continuous use, set factor `1` with quantity `730`, or factor
+`730` with quantity `1`.
+
+`__auditCosts` will **not** catch this — the row is neither zero-cost nor
+region-mismatched, it is simply multiplied wrong. A 730x error is obvious, but
+the same mistake with factor = `24` (Days) gives a 24x error that can look
+plausible. Sanity-check any row carrying a `*Factor` select against a rough
+expected unit price before quoting.
+
 ---
 
 ## Verification
