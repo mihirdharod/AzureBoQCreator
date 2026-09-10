@@ -14,6 +14,9 @@ scripts that the host Copilot session loads. It has no model, runtime or
 endpoint of its own; it extends Copilot rather than running as a standalone
 service.
 
+**New here? Start with the [tutorial](TUTORIAL.md)** — a full walkthrough from
+install to a finished BoQ, with a worked example inventory in [`examples/`](examples/).
+
 ---
 
 ## Why
@@ -94,7 +97,9 @@ pip install openpyxl
 
 ## Use
 
-Attach a server list and ask for a BoQ:
+Follow the [tutorial](TUTORIAL.md) for a full walkthrough with a worked example.
+
+In short — attach a server list and ask for a BoQ:
 
 > Build me an Azure BoQ from this server list, priced in West Europe.
 
@@ -122,6 +127,8 @@ azure-boq-creator-skill/
     ├── harness.js               browser driver for the calculator
     └── build_summary.py         exported estimate → Excel summary sheet
 
+TUTORIAL.md                      install → first BoQ, step by step
+examples/                        worked example inventory (fictional)
 tests/
 ├── run_tests.py                 123 assertions, no network or browser
 ├── make_fixtures.py             regenerates the synthetic fixtures
