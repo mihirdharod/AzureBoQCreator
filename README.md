@@ -117,7 +117,7 @@ export the estimate.
 azure-boq-creator-skill/
 ├── SKILL.md                     workflow the agent follows
 ├── reference/
-│   ├── calculator-dom.md        selectors, React quirks, 13 failure modes
+│   ├── calculator-dom.md        selectors, React quirks, 14 failure modes
 │   ├── products.md              how to drive any non-VM product
 │   ├── service-catalogue.md     verified names for 90+ services
 │   └── fabric-sizing.md         Fabric: size on the estimator, then price
@@ -171,7 +171,7 @@ Host, Elastic SAN, Managed Disks, Container Storage — are reachable only by
 typing their name, because the category tabs never render them.
 
 **Verification is the point.** Automating the clicking is the easy half.
-`reference/calculator-dom.md` documents 13 failure modes found by building real
+`reference/calculator-dom.md` documents 14 failure modes found by building real
 estimates, including several that produce a wrong number rather than an error:
 
 - Changing region silently reverts a reservation to pay-as-you-go.
@@ -184,6 +184,9 @@ estimates, including several that produce a wrong number rather than an error:
 - `hoursFactor` **multiplies** the hours field. Factor "Month" with 730 hours
   means 730 months — a verified Fabric row priced at **$30,013,020/month**
   instead of $41,308.
+- On a **signed-in saved estimate, Export returns the server copy**, not your
+  unsaved edits. Verified: 95 rows switched to pay-as-you-go, page total moved
+  $113,921 → $212,146, and the exported file still showed the old figure.
 
 The Bandwidth one was a real bug caught in testing — a row labelled "5 TB" was
 contributing **$0/month** to an estimate where it should have been $602, or 24%

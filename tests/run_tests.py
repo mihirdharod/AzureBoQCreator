@@ -296,7 +296,8 @@ def test_harness_syntax():
     for fn in ["__setNative", "__rows", "__expand", "__collapse", "__addVM", "__addProduct",
                "__findProducts", "__describeRow", "__cfgGeneric", "__cfgRow", "__pickInstance",
                "__setBilling", "__setDisk", "runPlan", "runMixedPlan", "__auditRows",
-               "__auditCosts", "__quickAudit", "__totals", "__export"]:
+               "__auditCosts", "__quickAudit", "__totals", "__export",
+               "__saveControls", "__exportIsStale", "__liveRows", "__saveAs"]:
         check(f"exports {fn}", f"window.{fn}" in src)
 
     # guards against regressions of specific, verified bugs
@@ -308,6 +309,9 @@ def test_harness_syntax():
     check("falls back to a savings plan when no RI exists", "sv-three-year" in src)
     check("reads product titles from the SVG title, not innerText",
           "data-slug-id" in src and "title" in src)
+    check("detects a signed-in saved estimate", "exportMayBeStale" in src)
+    check("warns that plain Save is destructive",
+          "Never click plain" in src or "overwrites" in src)
 
 
 # --------------------------------------------------------------------- docs
@@ -335,6 +339,8 @@ def test_docs():
           [int(x) for x in modes] == list(range(1, len(modes) + 1)), str(modes))
     check("SKILL.md's failure-mode count is accurate", f"{len(modes)} failure modes" in skill,
           f"doc has {len(modes)}")
+    check("documents the stale-export trap", "Export returns the SAVED copy" in dom)
+    check("SKILL.md checks for a stale export before exporting", "__exportIsStale" in skill)
 
     cat = open(os.path.join(base, "reference", "service-catalogue.md"), encoding="utf-8").read()
     for name in ["Foundry IQ", "Foundry Tools", "Virtual Machine Scale Sets",

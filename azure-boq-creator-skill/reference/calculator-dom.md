@@ -228,6 +228,44 @@ the same mistake with factor = `24` (Days) gives a 24x error that can look
 plausible. Sanity-check any row carrying a `*Factor` select against a rough
 expected unit price before quoting.
 
+### 14. On a signed-in saved estimate, Export returns the SAVED copy
+If the user is signed in and working on a **saved** estimate, the Export button
+exports the server-side copy — **not** your unsaved local edits. The download
+succeeds, the file looks right, and the numbers are silently stale.
+
+Verified: 95 rows were switched from 3-year commitment to pay-as-you-go, the page
+total moved from $113,920.89 to $212,146.48, Export was clicked, and the
+downloaded workbook still described every row as `3 year reserved` /
+`3 year savings plan` and totalled the old figure.
+
+Signed-in estimates expose extra controls. Their presence is the signal:
+
+```js
+[...document.querySelectorAll('button')]
+  .filter(b => b.offsetParent !== null)
+  .map(b => b.innerText.trim())
+  .filter(t => /^(Save|Save as|Share)$/i.test(t));
+// [] when anonymous, ["Save","Save as","Share"] when signed in
+```
+
+`__exportIsStale()` in the harness compares the live row total against the page
+total and reports whether Save controls are present. Run it before trusting an
+export.
+
+Three ways forward, in order of preference:
+
+1. **`Save as`** — writes a new saved estimate, leaves the user's original
+   intact, and Export then returns the new state. Safe.
+2. **Build the workbook from the live DOM** — `__liveRows()` returns every row's
+   name, region, description and monthly cost, which is enough to write an
+   export-format workbook locally. Use this when the user does not want the
+   estimate saved at all.
+3. **`Save`** — overwrites the user's existing saved estimate. **Destructive.
+   Never do this without explicit confirmation**; the pre-change version is gone.
+
+Anonymous estimates are unaffected: nothing is saved server-side, so Export
+always reflects the live page.
+
 ---
 
 ## Verification

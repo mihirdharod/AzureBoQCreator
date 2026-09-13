@@ -474,6 +474,64 @@ window.__setEstimateName = function (name) {
   return !!el;
 };
 
+/* ---------- signed-in / saved-estimate handling ------------------------
+ * See failure mode 14. On a signed-in SAVED estimate the Export button
+ * returns the server-side copy, not your unsaved edits, so an export can
+ * be silently stale. Always check before trusting one. */
+window.__saveControls = () =>
+  [...document.querySelectorAll('button')]
+    .filter(b => b.offsetParent !== null)
+    .map(b => (b.innerText || '').trim())
+    .filter(t => /^(Save|Save as|Share)$/i.test(t));
+
+window.__exportIsStale = function () {
+  const rowSum = +__rows().reduce((a, r) => {
+    const m = r.innerText.replace(/\s+/g, ' ').match(/Monthly:\s*\$([\d,]+(?:\.\d+)?)/);
+    return a + (m ? parseFloat(m[1].replace(/,/g, '')) : 0);
+  }, 0).toFixed(2);
+  const t = document.body.innerText.match(/Estimated monthly cost\s*\$([\d,]+(?:\.\d+)?)/);
+  const pageTotal = t ? parseFloat(t[1].replace(/,/g, '')) : null;
+  const controls = __saveControls();
+  return {
+    signedIn: controls.length > 0,
+    saveControls: controls,
+    rowTotal: rowSum,
+    pageTotal,
+    // a signed-in saved estimate may export stale data; verify or use __liveRows()
+    exportMayBeStale: controls.length > 0,
+  };
+};
+
+/* Everything needed to write an export-format workbook straight from the page,
+ * without saving anything server-side. */
+window.__liveRows = function () {
+  return __rows().map(r => {
+    const t = r.innerText.replace(/\s+/g, ' ');
+    const desc = (t.match(/i\s+(1 [A-Z][^]*?)\s+Clone/) || [])[1] || '';
+    const money = re => { const m = t.match(re); return m ? parseFloat(m[1].replace(/,/g, '')) : 0; };
+    const reg = (desc.match(/data transfer from ([A-Za-z ]+?) to /) || [])[1] || '';
+    return {
+      name: __label(r),
+      description: desc.trim(),
+      region: reg.trim(),
+      monthly: money(/Monthly:\s*\$([\d,]+(?:\.\d+)?)/),
+      upfront: money(/Upfront:\s*\$([\d,]+(?:\.\d+)?)/),
+    };
+  });
+};
+
+/* Writes a NEW saved estimate and leaves the user's original untouched.
+ * Never click plain "Save" on someone else's estimate without asking - it
+ * overwrites the pre-change version irrecoverably. */
+window.__saveAs = async function () {
+  const b = [...document.querySelectorAll('button')]
+    .find(x => /^Save as$/i.test((x.innerText || '').trim()) && x.offsetParent !== null);
+  if (!b) return { ok: false, err: 'no Save as button - not signed in?' };
+  b.click();
+  await __sleep(1200);
+  return { ok: true, note: 'confirm the dialog, then Export reflects the new state' };
+};
+
 window.__export = function () {
   const b = [...document.querySelectorAll('button')]
     .find(x => /^export$/i.test((x.innerText || '').trim()));

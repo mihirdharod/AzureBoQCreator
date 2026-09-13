@@ -16,7 +16,7 @@ reliable way to build a large estimate is to drive its DOM in a browser canvas.
 This skill contains the selectors, a tested harness, and the failure modes.
 
 Read before writing any browser code:
-- `reference/calculator-dom.md` — selectors, React quirks, 13 failure modes
+- `reference/calculator-dom.md` — selectors, React quirks, 14 failure modes
 - `reference/products.md` — how to price non-VM services generically
 - `reference/service-catalogue.md` — verified product names for 90+ services
   across all 13 categories, plus what is **not** priceable on the calculator
@@ -272,12 +272,38 @@ Some SKUs genuinely have **no Reserved Instance** (e.g. Fsv2). Fall back to the
 
 ## 4. Export and summarise
 
+### First: is this a signed-in saved estimate?
+
+Run `__exportIsStale()` **before** clicking Export. If the user is signed in and
+working on a saved estimate, **Export returns the server-side copy, not your
+unsaved edits** — the download succeeds and the numbers are silently stale
+(failure mode 14).
+
+If `signedIn` is true, pick one and **say which you're doing**:
+
+| Option | When |
+|---|---|
+| `__saveAs()` then Export | Default. New saved estimate, user's original untouched. |
+| `__liveRows()` → build the workbook locally | User doesn't want anything saved server-side. |
+| Plain `Save` | **Destructive — overwrites their saved estimate. Only with explicit confirmation.** |
+
+Never click plain `Save` on an estimate you didn't create.
+
+### Then export
+
 Click Export (`button.export-button`), then find the newest
-`ExportedEstimate*.xlsx` in the user's Downloads folder.
+`ExportedEstimate*.xlsx` in the user's Downloads folder. **Check the billing
+terms in the exported descriptions match what you configured** — that is the
+cheapest way to catch a stale export.
 
 ```powershell
 python scripts/build_summary.py "ExportedEstimate.xlsx" --out "Azure-BoQ-v1.0.xlsx"
 ```
+
+`build_summary.py` also accepts a workbook you wrote yourself from
+`__liveRows()`, as long as it uses the export layout: header on row 3, columns
+`Service category · Service type · Custom name · Region · Description ·
+Estimated monthly cost · Estimated upfront cost`, and a `Total` row.
 
 This adds a formatted **Summary** sheet: KPI block, cost by application, by
 region, by pricing model, and an assumptions note block. Application is the first
