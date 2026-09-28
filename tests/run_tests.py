@@ -354,6 +354,51 @@ def test_docs():
     check("fabric doc warns the hours factor multiplies", "MULTIPLIES" in fab or "multiplies" in fab)
 
 
+def test_adoption_docs():
+    """The README has to answer: who is this for, what does it cost them,
+    can they adopt it, and is the impact estimable."""
+    print("\nadoption and impact docs")
+    readme = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
+
+    # challenge relevance: clear user, concrete pain, defined success
+    for role in ["Solution Engineer", "Account Executive", "Specialist Seller", "CSU"]:
+        check(f"README names {role} as a user", role in readme)
+    check("README quantifies the manual effort", "~20 interactions per VM" in readme)
+    check("README defines what success looks like", "What success looks like" in readme)
+    check("README states what is NOT success", "Not success" in readme)
+
+    # reusability: transferable pattern, adoptable, documented
+    check("README names the reusable pattern", "The reusable pattern" in readme)
+    check("README explains what the pattern transfers to", "Transfers to" in readme)
+    check("README has an adoption section", "## Adopt it" in readme)
+    check("README states install has no server or credentials",
+          "No MCP server" in readme and "No credentials" in readme)
+    check("README indexes the documentation", "## Documentation" in readme)
+
+    # impact: what changes, estimable, frequency
+    check("README links an impact model", "IMPACT.md" in readme)
+    check("README addresses frequency", "Frequency" in readme)
+
+    impact = os.path.join(ROOT, "IMPACT.md")
+    check("IMPACT.md exists", os.path.exists(impact))
+    if os.path.exists(impact):
+        txt = open(impact, encoding="utf-8").read()
+        check("impact model separates measured from assumed",
+              "Measured" in txt and "Assumption" in txt)
+        check("impact model states what it does NOT count", "does *not* count" in txt)
+        check("impact model is runnable", "impact_model.py" in txt)
+
+    model = os.path.join(ROOT, "tools", "impact_model.py")
+    check("impact model script exists", os.path.exists(model))
+    if os.path.exists(model):
+        r = subprocess.run([sys.executable, model, "--vms", "50", "--scenarios", "2"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+        out = (r.stdout or "") + (r.stderr or "")
+        check("impact model runs", r.returncode == 0, out[-200:])
+        check("impact model reports a saving", "saved" in out.lower())
+        check("impact model labels its assumptions", "assumption" in out.lower())
+
+
 # ---------------------------------------------------------------- no secrets
 def test_no_customer_data():
     print("\nrepository hygiene")
@@ -418,6 +463,7 @@ def main():
         test_summary_is_idempotent(tmp)
         test_harness_syntax()
         test_docs()
+        test_adoption_docs()
         test_no_customer_data()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
